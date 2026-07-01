@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberDuck Chat Bot</title>
+    <style>
+        :root {
+            --neon-cyan: #00ffff;
+            --neon-pink: #ff00ff;
+            --bg-color: #000;
+            --chat-bg: #0a0a0a;
+            --text-color: #e0e0e0;
+            --online-green: #00ff00;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 10px;
+        }
+
+        /* Container Principal com Bordas Combinadas */
+        .chat-container {
+            background-color: var(--chat-bg);
+            border-radius: 12px;
+            /* Borda Neon Combinada: Ciano no topo, Rosa no fundo/lados */
+            border: 2px solid;
+            border-image: linear-gradient(180deg, var(--neon-cyan), var(--neon-pink)) 1;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.2), inset 0 0 10px rgba(255, 0, 255, 0.1);
+
+            /* Dimensões Dinâmicas e Responsivas */
+            width: 100%;
+            max-width: 600px;
+            height: 90vh;
+            max-height: 800px;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            overflow: hidden; /* Importante para manter o pato e o chat dentro */
+        }
+
+        /* Área do Avatar Grande e Retangular */
+        .avatar-panel {
+            width: 100%;
+            /* Mantivemos a altura do frame, mas mudamos como a imagem é exibida dentro dele */
+            height: 200px;
+            overflow: hidden;
+            border-bottom: 2px solid;
+            border-image: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink)) 1;
+            box-sizing: border-box;
+            display: flex; /* Centraliza a imagem contida */
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.2); /* Um fundo leve para destacar a imagem contida */
+        }
+
+        .avatar-img {
+            max-width: 100%;
+            max-height: 100%;
+
+            /* -- MUDANÇA PRINCIPAL AQUI -- */
+            /* object-fit: contain garante que a imagem caiba INTEIRA dentro do retângulo, sem cortar */
+            object-fit: contain;
+
+            /* Cantos arredondados, mas apenas os superiores para combinar com o chat */
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+
+        /* Header do Chat */
+        .chat-header {
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .bot-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 10px var(--neon-cyan);
+            margin: 0;
+        }
+
+        .status-online {
+            font-size: 0.9em;
+            color: var(--online-green);
+        }
+
+        /* Histórico do Chat Dinâmico */
+        .chat-history {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            /* Scrollbar cyberpunk */
+            scrollbar-width: thin;
+            scrollbar-color: var(--neon-cyan) rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-history::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-history::-webkit-scrollbar-thumb {
+            background-color: var(--neon-cyan);
+            border-radius: 10px;
+        }
+
+        /* Bolhas de Mensagem com Dimensões Dinâmicas */
+        .message {
+            max-width: 80%;
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-size: 15px;
+            line-height: 1.5;
+            white-space: pre-line; /* Mantém as quebras de linha da IA */
+
+            /* Isso garante que o tamanho da bolha acompanhe o texto */
+            width: fit-content;
+        }
+
+        /* Mensagens do Bot (Ciano) */
+        .bot-message {
+            align-self: flex-start;
+            background-color: transparent;
+            border: 2px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.1), inset 0 0 5px rgba(0, 255, 255, 0.05);
+        }
+
+        /* Mensagens do Usuário (Rosa) */
+        .user-message {
+            align-self: flex-end;
+            background-color: transparent;
+            border: 2px solid var(--neon-pink);
+            color: var(--neon-pink);
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.1), inset 0 0 5px rgba(255, 0, 255, 0.05);
+        }
+
+        /* Área de Entrada */
+        .chat-input-area {
+            padding: 15px 20px;
+            background-color: #0d0d0d;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            gap: 15px;
+            box-sizing: border-box;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            background-color: #1a1a1a;
+            border: 2px solid var(--neon-cyan);
+            border-radius: 8px;
+            font-size: 16px;
+            color: var(--text-color);
+            outline: none;
+            transition: box-shadow 0.2s;
+        }
+
+        input[type="text"]:focus {
+            box-shadow: 0 0 10px var(--neon-cyan);
+        }
+
+        .chat-send-btn {
+            padding: 12px 25px;
+            background-color: transparent;
+            color: var(--neon-pink);
+            border: 2px solid var(--neon-pink);
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+            box-shadow: 0 0 5px var(--neon-pink);
+        }
+
+        .chat-send-btn:hover {
+            background-color: var(--neon-pink);
+            color: #000;
+            box-shadow: 0 0 20px var(--neon-pink);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="chat-container">
+
+        <div class="avatar-panel">
+            <img id="avatar-cyber" src="{{ url_for('static', filename='pato1.png') }}" alt="CyberDuck Avatar" class="avatar-img">
+        </div>
+
+        <div class="chat-header">
+            <h1 class="bot-name">CyberDuck Bot</h1>
+            <div class="status-online">● ONLINE</div>
+        </div>
+
+        <div class="chat-history" id="chat-history">
+            <div class="message bot-message">Sistemas ativos. O que quer transmitir hoje?</div>
+        </div>
+
+        <div class="chat-input-area">
+            <input type="text" id="pergunta-usuario" placeholder="Escreva sua mensagem..." autocomplete="off">
+            <button class="chat-send-btn" id="btn-enviar">ENVIAR</button>
+        </div>
+    </div>
+
+    <script>
+        // Mapeia os caminhos das imagens vindas do Flask
+        const imgEstatica = "{{ url_for('static', filename='pato1.png') }}";
+        const imgGif = "{{ url_for('static', filename='avatar.gif') }}";
+
+        const campoTexto = document.getElementById('pergunta-usuario');
+        const historicoChat = document.getElementById('chat-history');
+        const btnEnviar = document.getElementById('btn-enviar');
+        const elAvatar = document.getElementById('avatar-cyber');
+
+        // Cria uma instância de áudio global no navegador
+        let audioPlayer = new Audio();
+
+        btnEnviar.addEventListener('click', realizarPergunta);
+        campoTexto.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') realizarPergunta();
+        });
+
+        // Função para adicionar uma bolha de mensagem ao histórico
+        function adicionarMensagem(texto, remetente) {
+            const mensagemDiv = document.createElement('div');
+            mensagemDiv.classList.add('message');
+
+            if (remetente === 'bot') {
+                mensagemDiv.classList.add('bot-message');
+                mensagemDiv.textContent = texto;
+            } else {
+                mensagemDiv.classList.add('user-message');
+                mensagemDiv.textContent = `>>> ${texto}`;
+            }
+
+            historicoChat.appendChild(mensagemDiv);
+            historicoChat.scrollTop = historicoChat.scrollHeight;
+        }
+
+        async function realizarPergunta() {
+            const textoPergunta = campoTexto.value.trim();
+            if (!textoPergunta) return;
+
+            // Limpa o input e adiciona a mensagem do usuário
+            campoTexto.value = '';
+            adicionarMensagem(textoPergunta, 'user');
+
+            // Adiciona uma bolha temporária de carregamento
+            const carregandoDiv = document.createElement('div');
+            carregandoDiv.classList.add('message', 'bot-message');
+            carregandoDiv.innerHTML = '<strong style="color: var(--neon-cyan);">Sincronizando áudio...</strong>';
+            historicoChat.appendChild(carregandoDiv);
+            historicoChat.scrollTop = historicoChat.scrollHeight;
+
+            try {
+                // Para qualquer áudio que ainda esteja tocando antes de iniciar um novo
+                audioPlayer.pause();
+                elAvatar.src = imgEstatica; // Garante que começa estático
+
+                const response = await fetch('/perguntar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pergunta: textoPergunta })
+                });
+
+                const dados = await response.json();
+
+                // Remove a bolha de carregamento e adiciona a resposta real
+                historicoChat.removeChild(carregandoDiv);
+                adicionarMensagem(dados.resposta, 'bot');
+
+                if (dados.audio_url) {
+                    // Configura o arquivo de áudio recebido
+                    audioPlayer.src = dados.audio_url;
+
+                    // Evento 1: Quando o áudio começa a tocar, muda para o GIF animado
+                    audioPlayer.onplay = () => {
+                        elAvatar.src = imgGif;
+                    };
+
+                    // Evento 2: Quando o áudio termina, volta para a imagem estática
+                    audioPlayer.onended = () => {
+                        elAvatar.src = imgEstatica;
+                    };
+
+                    // Executa o áudio automaticamente
+                    // (Lembrete: o autoplay requer uma interação prévia, que é o clique em enviar)
+                    audioPlayer.play().catch(e => {
+                        console.log("A reprodução automática foi bloqueada pelo navegador. Interaja com a página primeiro.");
+                    });
+                }
+
+            } catch (erro) {
+                historicoChat.removeChild(carregandoDiv);
+                adicionarMensagem('Erro de conexão com a rede. Verifique seu servidor.', 'bot');
+            }
+        }
+    </script>
+
+</body>
+</html>
