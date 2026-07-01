@@ -29,8 +29,10 @@ def perguntar():
         # Volta a usar a IA 100% gratuita que não pede chaves
         response = client.chat.completions.create(
             model="gpt-4o",
+            provider=g4f.Provider.DuckDuckGo, # Força o uso de um provedor específico que aceita requisições do Render
             messages=[{"role": "user", "content": pergunta}]
         )
+        resposta_final = response.choices[0].message.content
         resposta_final = response.choices[0].message.content
 
         # Limpa o texto para o áudio
